@@ -1,56 +1,80 @@
-$(document).ready(function(){
-	var trainData = firebase.database
-	$("#addTrainBtn").on("click", function(){
+$(document).ready(function() {
+var topics = [];
 
-		var trainName = $("#trainNameInput").val().trim();
-		var destination = $("#destinationInput").val().trim();
-		var trainTimeInput = moment($("#trainTimeInput").val().trim(), "HH:mm").subtract(10, "years").format("X");;
-		var frequencyInput = $("#frequencyInput").val().trim();
+ 	function displayAnimal() {
 
-		console.log(trainName);
-		console.log(destination);
-		console.log(trainTimeInput);
-		console.log(frequencyInput);
+	var x = $(this).data("search");
+	console.log(x);
 
-		var newTrain = {
-			name:  trainName,
-			destination: destination,
-			trainTime: trainTimeInput,
-			frequency: frequencyInput,
-		}
+	var queryURL = "http://api.giphy.com/v1/gifs/search?q=" + x + "&api_key=vmRTFHY0336QBRUYvgk4WbwJH1GCUNw2&limit=10";
 
-		trainData.push(newTrain);
+	console.log(queryURL);
 
-		$("#trainNameInput").val("");
-		$("#destinationInput").val("");
-		$("#trainInput").val("");
-		$("#frequencyInput").val("");
+	$.ajax({
+             url: queryURL,
+        method: "GET"
+       }).done(function(response) {
+       	var results = response.data;
+       	console.log(results);
+       	for (var i = 0; i < results.length; i++) {
+        	
+            var animalDiv = $("<div class='col-md-4'>");
 
-		return false;
+            var rating = results[i].rating;
+            var defaultAnimatedSrc = results[i].images.fixed_height.url;
+            var staticSrc = results[i].images.fixed_height_still.url;
+            var animalImage = $("<img>");
+            var p = $("<p>").text("Rating: " + rating);
+
+            animalImage.attr("src", staticSrc);
+            animalImage.addClass("animalGiphy");
+            animalImage.attr("data-state", "still");
+            animalImage.attr("data-still", staticSrc);
+            animalImage.attr("data-animate", defaultAnimatedSrc);
+            animalDiv.append(p);
+            animalDiv.append(animalImage);
+            $("#gifArea").prepend(animalDiv);
+
+        }
 	});
+}
 
-	trainData.on("child_added", function(childSnapshot, prevChildKey){
+	$("#addAnimal").on("click", function(event) {
+        event.preventDefault();
+        var newAnimal = $("#animalInput").val().trim();
+        topics.push(newAnimal);
+        console.log(topics);
+        $("#animalInput").val('');
+        displayButtons();
+      });
 
-		console.log(childSnapshot.val());
+	function displayButtons() {
+    $("#myButtons").empty();
+    for (var i = 0; i < topics.length; i++) {
+      var a = $('<button class="btn btn-primary">');
+      a.attr("id", "animal");
+      a.attr("data-search", topics[i]);
+      a.text(topics[i]);
+      $("#myButtons").append(a);
+    }
+  }
 
-		var firebaseName = childSnapshot.val().name;
-		var firebaseDestination = childSnapshot.val().destination;
-		var firebaseTrainTimeInput = childSnapshot.val().trainTime;
-		var firebaseFrequency = childSnapshot.val().frequency;
-		
-		var diffTime = moment().diff(moment.unix(firebaseTrainTimeInput), "minutes");
-		var timeRemainder = moment().diff(moment.unix(firebaseTrainTimeInput), "minutes") % firebaseFrequency ;
-		var minutes = firebaseFrequency - timeRemainder;
 
-		var nextTrainArrival = moment().add(minutes, "m").format("hh:mm A"); 
-		
-		console.log(minutes);
-		console.log(nextTrainArrival);
-		console.log(moment().format("hh:mm A"));
-		console.log(nextTrainArrival);
-		console.log(moment().format("X"));
+  displayButtons();
 
-		$("#trainTable > tbody").append("<tr><td>" + firebaseName + "</td><td>" + firebaseLine + "</td><td>"+ firebaseDestination + "</td><td>" + firebaseFrequency + " mins" + "</td><td>" + nextTrainArrival + "</td><td>" + minutes + "</td></tr>");
+  $(document).on("click", "#animal", displayAnimal);
 
-	});
-});
+  $(document).on("click", ".animalGiphy", pausePlayGifs);
+
+  function pausePlayGifs() {
+  	 var state = $(this).attr("data-state");
+      if (state === "still") {
+        $(this).attr("src", $(this).attr("data-animate"));
+        $(this).attr("data-state", "animate");
+      } else {
+        $(this).attr("src", $(this).attr("data-still"));
+        $(this).attr("data-state", "still");
+  }
+}
+
+}); 
